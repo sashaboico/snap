@@ -1,6 +1,6 @@
 # Public By Default: Inferring Relationship Status from Venmo's Transaction Network
 
-SNAP Track 1 Project — [Team Name]
+SNAP Track 1 Project — Group 8
 
 ## Project Overview
 
@@ -17,8 +17,7 @@ Primary method: ERGM (Exponential Random Graph Model)
 | Person     | Role                                    |
 |------------|------------------------------------------|
 | Alexandra  | Data Preparation & Network Construction   |
-| Yunai      | Inferential Modeling & Analysis (ERGM)    |
-| Yas'lyn    | Relationship Measures & Descriptive Analysis |
+| Yunai      | Inferential Modeling & Analysis (ERGM) + Relationship Measures & Descriptive Analysis |
 | Ayaan      | Privacy Context & Client Implications     |
 
 Shared: validation, interpretation, visualizations, final deliverables.
@@ -54,12 +53,3 @@ This dataset contains real (pseudonymous) usernames. Per our proposal, all
 identifiers will be anonymized before any analysis, visualization, or
 deliverable leaves this pipeline. Do not commit raw usernames or raw data
 files to this repository.
-
-## Pipeline Status
-
-- [ ] Download & inspect raw data
-- [ ] Sample down to feasible node set (~200-400 nodes)
-- [ ] Build tie list / edge list
-- [ ] Construct node-level attributes
-- [ ] Assemble ERGM-ready network object
-- [ ] Handoff to Yas'lyn (relationship-signal variable) and Yunai (ERGM)
