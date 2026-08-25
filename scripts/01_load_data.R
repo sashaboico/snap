@@ -4,16 +4,44 @@
 
 library(readr)
 library(dplyr)
+library(data.table)
 
-# Adjust filename once you've downloaded + unzipped the dataset into data/raw/
-venmo_raw <- read_csv("data/raw/venmo_transactions.csv")
+venmo_raw <- fread(
+  "data/raw/venmo.csv",
+  select = c(
+    "payment.id",
+    "payment.date_created",
+    "payment.actor.username",
+    "payment.actor.id",
+    "payment.actor.date_joined",
+    "payment.target.user.username",
+    "payment.target.user.id",
+    "payment.target.user.date_joined",
+    "payment.note",
+    "payment.audience",
+    "payment.action"
+  )
+)
 
-# First look
 glimpse(venmo_raw)
-head(venmo_raw)
-nrow(venmo_raw)
 
-# TODO once columns are confirmed:
-# - check for missing sender/recipient values
-# - check timestamp format / range
-# - confirm which fields are actually present (memo, emoji, audience setting, etc.)
+venmo_clean <- venmo_raw %>%
+  filter(
+    !is.na(payment.actor.username), payment.actor.username != "",
+    !is.na(payment.target.user.username), payment.target.user.username != "",
+    payment.actor.username != payment.target.user.username
+  ) %>%
+  rename(
+    sender = payment.actor.username,
+    sender_id = payment.actor.id,
+    sender_joined = payment.actor.date_joined,
+    recipient = payment.target.user.username,
+    recipient_id = payment.target.user.id,
+    recipient_joined = payment.target.user.date_joined,
+    timestamp = payment.date_created,
+    memo = payment.note,
+    audience = payment.audience,
+    action = payment.action
+  )
+
+nrow(venmo_clean)
