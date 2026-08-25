@@ -1,0 +1,18 @@
+# Raw data (large, contains pseudonymous usernames — do not commit)
+data/raw/*
+!data/raw/.gitkeep
+
+# R specific
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large processed files (adjust as needed — keep small samples, ignore big ones)
+data/processed/*.csv
+!data/processed/.gitkeep
