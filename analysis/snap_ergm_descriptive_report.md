@@ -4,20 +4,15 @@ This report prepares the **Inferential Modeling & Analysis (ERGM)** and **Relati
 
 The current work deliberately does **not** modify raw data, sampling, or network construction. The upstream data and network logic remain owned by the earlier pipeline scripts.
 
-## Scope and Interpretation
+## Analysis Focus
 
-The proposal's broader intuition is that public Venmo transactions may leak private relationship information through network position and neighbors' activity. For this assignment pass, the scope is narrower:
-
-- Use the existing ERGM-ready directed network.
-- Prepare descriptive network measures and relationship-strength proxies.
-- Fit and document staged ERGM screening models.
-- Exclude ALAAM, SAOM, REM, raw-data recoding, and new network construction.
+The proposal's broader intuition is that public Venmo transactions may leak private relationship information through network position and neighbors' activity. My part focuses on what can be learned from the ERGM-ready network after the data preparation and network construction steps are already complete.
 
 Because the committed network object does not include raw memo text, emoji, timestamps, or audience fields, this analysis cannot directly label romantic relationship status. Instead, it uses **structural and behavioral proxies** for relationship strength: repeated transactions, reciprocity, and shared-neighbor embeddedness. These proxies support a privacy-risk argument, but they are not ground-truth relationship labels.
 
-## Existing Network
+## Existing Analysis Network
 
-The existing network object is directed and contains 206 nodes and 289 directed edges. It is a tractable ERGM dataset, satisfying the course requirement that the analysis not try to model the full 7M-transaction graph directly.
+The existing network object is directed and contains 206 nodes and 289 directed edges. I treat this as the analysis handoff from the data/network-construction step rather than changing the sampling strategy here. Substantively, the smaller network is useful for this ERGM analysis because the question is local: can repeated, reciprocal, and embedded transaction ties reveal relationship strength within a public transaction neighborhood? The tradeoff is that this network can demonstrate a plausible privacy risk, but it should not be read as a population estimate for all Venmo users.
 
 Key descriptive results from `outputs/analysis/network_summary.csv`:
 
@@ -38,16 +33,6 @@ Key descriptive results from `outputs/analysis/network_summary.csv`:
 The network is sparse but connected in weak-component terms. The in-degree distribution is highly skewed, which matters for ERGM specification because simple edge and triangle terms alone are likely to underfit degree heterogeneity.
 
 ![Degree distribution](../outputs/analysis/figures/degree_distribution.png)
-
-## Scale-Down Rationale
-
-The full Public Venmo dataset is too large for a first-pass ERGM: it contains roughly 7 million public transactions and potentially millions of actors. ERGMs model the probability of the whole observed graph as a function of network statistics, so attempting to fit the full graph directly would make estimation expensive and would also obscure the local relationship-inference question.
-
-This analysis therefore uses the existing 206-node, 289-edge network object as a tractable analysis network. The scale-down is defensible for this assignment because the question is not whether we can estimate a population-level model for every Venmo user. The question is whether a local public transaction neighborhood can reveal relationship-strength signals even when relationship status is not explicitly disclosed. A smaller connected network is appropriate for that goal because reciprocity, repeated interaction, common-neighbor embeddedness, degree concentration, and closure are all local or meso-level mechanisms that ERGMs are designed to represent.
-
-The limitation is that this sample should not be treated as representative of the full Venmo population. It is best framed as a privacy-risk demonstration on a tractable sampled network. Final writing should explicitly say that the sample makes ERGM feasible while limiting generalizability.
-
-This scale-down logic is consistent with large-network ERGM literature. Pattison, Robins, Snijders, and Wang (2013) argue that full-network surveys in large populations can be prohibitively difficult and discuss conditional ERGM estimation from snowball/link-tracing designs. The current repo's network object is not re-sampled in this analysis pass, but it fits the same practical principle: use a local, analyzable network rather than forcing ERGM onto the full massive graph.
 
 ## Relationship Measures
 
@@ -98,7 +83,7 @@ The models are currently fit with MPLE for fast preparation and screening. Final
 
 This is why the current report labels the models as screening models. The statnet ERGM tutorial emphasizes that once dyad-dependent terms are included, final interpretation should come after MCMC convergence checks and goodness-of-fit assessment. The current outputs prepare that path by fitting the staged formulas, exporting coefficients, and saving an initial GOF figure for the most complete screening model.
 
-## ERGM Screening Results
+## ERGM Screening Results and Model Choice
 
 All four staged MPLE screening models fit successfully.
 
@@ -119,16 +104,29 @@ In the full closure model, the screening odds ratios are approximately:
 | `gwodeg.fixed.0.5` | 0.768 | 2.156 |
 | `gwesp.OTP.fixed.0.5` | 1.410 | 4.095 |
 
-These coefficients should be read as model-screening evidence, not final causal or inferential claims. The next step is to choose a stable final specification and estimate it with MCMLE.
+Among the screening models, M4 is the most defensible preferred specification. It has the lowest AIC/BIC among the staged models (M2 AIC = 3231, M3 AIC = 3128, M4 AIC = 2940), and it also matches the substantive story better than a simpler reciprocity-only model. The privacy concern is not only that two users pay each other back; it is that repeated and reciprocal ties sit inside a visible local neighborhood. Adding degree terms accounts for the skewed degree distribution, and adding `gwesp` captures whether ties cluster through shared partners.
 
-## To-Do List for Final Analysis
+M2 is still useful as a simpler baseline because the reciprocity effect is large and easy to interpret. M3 improves on M2 by accounting for degree concentration, but the out-degree term is not informative there. M4 is preferable for the current analysis because closure becomes strongly positive while reciprocity remains positive, suggesting that the observed transaction network contains both direct mutual exchange and local embeddedness.
 
-- Decide whether M4 is the preferred final ERGM specification or whether a simpler M2/M3 model is more defensible.
-- Refit the preferred model using MCMLE.
-- Run `mcmc.diagnostics()` and inspect trace/mixing behavior.
-- Run ERGM GOF checks for in-degree, out-degree, distance, and shared-partner structure.
-- Report how the sampled 206-node network makes ERGM tractable while limiting generalizability to the full Venmo graph.
-- Keep the interpretation focused on structural privacy leakage and relationship-strength inference, not verified relationship status.
+These coefficients should be read as model-screening evidence, not final causal claims. The standard errors come from MPLE, so a final paper should be careful not to overstate them as full MCMLE inference.
+
+## Goodness-of-Fit Checks
+
+I ran GOF checks for the preferred screening model, M4, using in-degree, out-degree, minimum geodesic distance, edgewise shared partners, and dyadwise shared partners. These checks ask whether networks simulated from the fitted model reproduce important observed structures beyond the exact statistics used to estimate the model.
+
+![M4 GOF diagnostics](../outputs/analysis/figures/m4_closure_gof.png)
+
+The GOF summary below reports the share of active observed categories that fall inside the simulated 95% interval from 30 simulated networks.
+
+| GOF check | Active categories within simulated 95% interval |
+|---|---:|
+| In-degree distribution | 57.1% |
+| Out-degree distribution | 72.7% |
+| Minimum geodesic distance | 90.9% |
+| Edgewise shared partners | 40.0% |
+| Dyadwise shared partners | 60.0% |
+
+This is a mixed but informative result. M4 captures the broad distance structure well and does reasonably on out-degree, but it does not fully reproduce the shared-partner distributions. That makes sense substantively: the same closure pattern that is central to relationship inference is also the hardest part of the network to fit cleanly. I would still prefer M4 over M2 or M3 for the current analysis because it directly models embeddedness and has better AIC/BIC, but I would describe it as the best screening specification rather than a finalized inferential model.
 
 ## References for ERGM Specification
 

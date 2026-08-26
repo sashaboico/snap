@@ -1,0 +1,6 @@
+"check","categories_checked","active_categories","active_categories_within_95pct_interval","observed_total","simulated_mean_total"
+"In-degree distribution",206,14,0.571428571428571,206,206
+"Out-degree distribution",206,11,0.727272727272727,206,206
+"Minimum geodesic distance",206,22,0.909090909090909,42230,42230
+"Edgewise shared partners",205,5,0.4,289,212.566666666667
+"Dyadwise shared partners",205,5,0.6,42230,42230

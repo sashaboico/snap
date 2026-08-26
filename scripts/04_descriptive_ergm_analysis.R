@@ -92,6 +92,37 @@ coef_table_from_fit <- function(fit, model_name) {
   )
 }
 
+summarize_gof_distribution <- function(gof_result, suffix, label) {
+  obs <- gof_result[[paste0("obs.", suffix)]]
+  sim <- gof_result[[paste0("sim.", suffix)]]
+  if (is.null(obs) || is.null(sim)) {
+    return(data.frame(
+      check = label,
+      categories_checked = 0,
+      active_categories = 0,
+      active_categories_within_95pct_interval = NA_real_,
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  sim <- as.matrix(sim)
+  lower <- apply(sim, 2, stats::quantile, probs = 0.025, na.rm = TRUE, names = FALSE)
+  upper <- apply(sim, 2, stats::quantile, probs = 0.975, na.rm = TRUE, names = FALSE)
+  sim_mean <- colMeans(sim, na.rm = TRUE)
+  obs <- as.numeric(obs)
+  active <- obs > 0 | sim_mean > 0
+
+  data.frame(
+    check = label,
+    categories_checked = length(obs),
+    active_categories = sum(active),
+    active_categories_within_95pct_interval = mean(obs[active] >= lower[active] & obs[active] <= upper[active]),
+    observed_total = sum(obs, na.rm = TRUE),
+    simulated_mean_total = sum(sim_mean, na.rm = TRUE),
+    stringsAsFactors = FALSE
+  )
+}
+
 fit_ergm_safe <- function(model_name, formula, out_dir) {
   message("Fitting ", model_name, " ...")
   warning_messages <- character()
@@ -396,7 +427,11 @@ run_snap_analysis <- function(repo_root = ".", fit_models = TRUE) {
         cat("then run mcmc.diagnostics() and gof() with adequate simulation size.\n")
       })
       gof_result <- tryCatch(
-        gof(best_fit, GOF = ~ idegree + odegree + distance, control = control.gof.ergm(nsim = 20)),
+        gof(
+          best_fit,
+          GOF = ~ idegree + odegree + distance + espartners + dspartners,
+          control = control.gof.ergm(nsim = 30)
+        ),
         error = function(e) e
       )
       if (inherits(gof_result, "error")) {
@@ -406,6 +441,15 @@ run_snap_analysis <- function(repo_root = ".", fit_models = TRUE) {
         )
       } else {
         saveRDS(gof_result, file.path(out_dir, paste0(best_name, "_gof.rds")))
+        capture_text(file.path(out_dir, paste0(best_name, "_gof_summary.txt")), summary(gof_result))
+        gof_summary_table <- do.call(rbind, list(
+          summarize_gof_distribution(gof_result, "ideg", "In-degree distribution"),
+          summarize_gof_distribution(gof_result, "odeg", "Out-degree distribution"),
+          summarize_gof_distribution(gof_result, "dist", "Minimum geodesic distance"),
+          summarize_gof_distribution(gof_result, "espart", "Edgewise shared partners"),
+          summarize_gof_distribution(gof_result, "dspart", "Dyadwise shared partners")
+        ))
+        write.csv(gof_summary_table, file.path(out_dir, paste0(best_name, "_gof_check_summary.csv")), row.names = FALSE)
         png(file.path(fig_dir, paste0(best_name, "_gof.png")), width = 1200, height = 900, res = 160)
         plot(gof_result)
         dev.off()
