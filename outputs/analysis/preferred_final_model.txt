@@ -1,0 +1,2 @@
+Preferred final MCMLE model: m3_degree_mcmle
+Selection rule: most complex MCMLE model that fit without density-guard or degeneracy failure.

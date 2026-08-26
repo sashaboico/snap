@@ -1,0 +1,17 @@
+Call:
+ergm(formula = formula, estimate = "MLE", control = control.ergm(MCMC.burnin = 10000, 
+    MCMC.interval = 1000, MCMC.samplesize = 2000, MCMLE.maxit = 8, 
+    MCMLE.effectiveSize = 64, MCMLE.termination = "Hummel"))
+
+Monte Carlo Maximum Likelihood Results:
+
+       Estimate Std. Error MCMC % z value Pr(>|z|)    
+edges  -5.15554    0.06567      0  -78.50   <1e-04 ***
+mutual  3.54823    0.24565      0   14.44   <1e-04 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+     Null Deviance: 58543  on 42230  degrees of freedom
+ Residual Deviance:  3339  on 42228  degrees of freedom
+ 
+AIC: 3343  BIC: 3361  (Smaller is better. MC Std. Err. = 1.061)

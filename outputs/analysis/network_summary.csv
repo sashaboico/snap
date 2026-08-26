@@ -14,5 +14,8 @@
 "max_out_degree",11
 "degree_skew_total",9.84502378966152
 "global_transitivity_undirected",0.0521739130434783
+"average_local_clustering_undirected",0.175096307863298
+"detected_louvain_communities",18
+"largest_louvain_community_nodes",45
 "frequency_cutoff_high_tie",2
 "embedded_cutoff_common_neighbors",1

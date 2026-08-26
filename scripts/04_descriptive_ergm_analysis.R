@@ -174,6 +174,143 @@ fit_ergm_safe <- function(model_name, formula, out_dir) {
   list(status = status, coefficients = coef_table_from_fit(fit, model_name), fit = fit)
 }
 
+fit_mcmle_safe <- function(model_name, formula, out_dir, fig_dir) {
+  message("Fitting ", model_name, " with MCMLE ...")
+  warning_messages <- character()
+  fit <- tryCatch(
+    withCallingHandlers({
+      set.seed(341)
+      ergm(
+        formula,
+        estimate = "MLE",
+        control = control.ergm(
+          MCMC.burnin = 10000,
+          MCMC.interval = 1000,
+          MCMC.samplesize = 2000,
+          MCMLE.maxit = 8,
+          MCMLE.effectiveSize = 64,
+          MCMLE.termination = "Hummel"
+        )
+      )
+    }, warning = function(w) {
+      warning_messages <<- unique(c(warning_messages, conditionMessage(w)))
+      invokeRestart("muffleWarning")
+    }),
+    error = function(e) e
+  )
+
+  if (inherits(fit, "error")) {
+    failure <- data.frame(
+      model = model_name,
+      status = "failed",
+      message = conditionMessage(fit),
+      stringsAsFactors = FALSE
+    )
+    write.csv(failure, file.path(out_dir, paste0(model_name, "_status.csv")), row.names = FALSE)
+    return(list(status = failure, coefficients = data.frame()))
+  }
+
+  saveRDS(fit, file.path(out_dir, paste0(model_name, ".rds")))
+  capture_text(file.path(out_dir, paste0(model_name, "_summary.txt")), summary(fit))
+  diagnostics_result <- tryCatch({
+    grDevices::pdf(file = NULL)
+    on.exit(grDevices::dev.off(), add = TRUE)
+    capture.output(mcmc.diagnostics(fit, center = FALSE))
+  }, error = function(e) paste("MCMC diagnostics failed:", conditionMessage(e)))
+  write_text(file.path(out_dir, paste0(model_name, "_mcmc_diagnostics.txt")), diagnostics_result)
+
+  png(file.path(fig_dir, paste0(model_name, "_mcmc_diagnostics.png")), width = 1200, height = 900, res = 160)
+  plot_result <- try(capture.output(mcmc.diagnostics(fit, center = FALSE)), silent = TRUE)
+  if (inherits(plot_result, "try-error")) {
+    plot.new()
+    text(0.5, 0.5, "MCMC diagnostics plot unavailable")
+  }
+  dev.off()
+
+  status <- data.frame(
+    model = model_name,
+    status = "fit",
+    message = paste(
+      "Fit with MCMLE for final-model follow-up from the MPLE screening specification.",
+      if (length(warning_messages) > 0) {
+        paste("Warnings suppressed during fit:", length(warning_messages), "unique warning type(s).")
+      } else {
+        "No warnings."
+      }
+    ),
+    stringsAsFactors = FALSE
+  )
+  write.csv(status, file.path(out_dir, paste0(model_name, "_status.csv")), row.names = FALSE)
+  list(status = status, coefficients = coef_table_from_fit(fit, model_name), fit = fit)
+}
+
+plot_network_outputs <- function(g_dir, edge_df, node_summary, community_membership, fig_dir) {
+  plot_graph <- igraph::as_undirected(g_dir, mode = "collapse")
+  igraph::V(plot_graph)$degree <- node_summary$total_weak_degree
+  igraph::V(plot_graph)$community <- community_membership
+  proxy_nodes <- unique(c(edge_df$tail[edge_df$relationship_strength_proxy], edge_df$head[edge_df$relationship_strength_proxy]))
+  igraph::V(plot_graph)$proxy_incident <- seq_len(igraph::vcount(plot_graph)) %in% proxy_nodes
+
+  undirected_proxy <- apply(edge_df[, c("tail", "head")], 1, function(x) paste(sort(x), collapse = "--"))
+  proxy_pairs <- unique(undirected_proxy[edge_df$relationship_strength_proxy])
+  edge_pairs <- apply(igraph::ends(plot_graph, igraph::E(plot_graph), names = FALSE), 1, function(x) paste(sort(x), collapse = "--"))
+  igraph::E(plot_graph)$proxy <- edge_pairs %in% proxy_pairs
+
+  set.seed(341)
+  layout <- igraph::layout_with_fr(plot_graph)
+  community_palette <- c("#4E79A7", "#59A14F", "#F28E2B", "#E15759", "#76B7B2", "#B07AA1", "#EDC948", "#9C755F")
+  node_cols <- community_palette[((community_membership - 1) %% length(community_palette)) + 1]
+  node_cols[igraph::V(plot_graph)$proxy_incident] <- "#D1495B"
+  edge_cols <- ifelse(igraph::E(plot_graph)$proxy, "#D1495B", grDevices::adjustcolor("#8A8A8A", alpha.f = 0.35))
+  edge_widths <- ifelse(igraph::E(plot_graph)$proxy, 2.2, 0.8)
+  node_sizes <- 3.5 + 2.2 * log1p(igraph::V(plot_graph)$degree)
+
+  png(file.path(fig_dir, "network_community_proxy_map.png"), width = 1400, height = 1000, res = 170)
+  par(mar = c(0.5, 0.5, 2.2, 0.5))
+  plot(
+    plot_graph,
+    layout = layout,
+    vertex.label = NA,
+    vertex.size = node_sizes,
+    vertex.color = node_cols,
+    vertex.frame.color = "white",
+    edge.color = edge_cols,
+    edge.width = edge_widths,
+    main = "Transaction network: communities and relationship-strength proxy ties"
+  )
+  legend(
+    "bottomleft",
+    legend = c("Proxy-incident node / proxy tie", "Other node / tie"),
+    col = c("#D1495B", "#8A8A8A"),
+    pch = c(19, 19),
+    pt.cex = c(1.3, 1.0),
+    bty = "n"
+  )
+  dev.off()
+
+  proxy_edge_ids <- which(igraph::E(plot_graph)$proxy)
+  proxy_subgraph <- igraph::subgraph_from_edges(plot_graph, eids = proxy_edge_ids, delete.vertices = TRUE)
+  if (igraph::vcount(proxy_subgraph) > 0 && igraph::ecount(proxy_subgraph) > 0) {
+    set.seed(342)
+    proxy_layout <- igraph::layout_with_fr(proxy_subgraph)
+    proxy_degree <- igraph::degree(proxy_subgraph)
+    png(file.path(fig_dir, "relationship_proxy_subnetwork.png"), width = 1200, height = 900, res = 170)
+    par(mar = c(0.5, 0.5, 2.2, 0.5))
+    plot(
+      proxy_subgraph,
+      layout = proxy_layout,
+      vertex.label = NA,
+      vertex.size = 4 + 2.6 * log1p(proxy_degree),
+      vertex.color = "#D1495B",
+      vertex.frame.color = "white",
+      edge.color = grDevices::adjustcolor("#4E79A7", alpha.f = 0.7),
+      edge.width = 1.8,
+      main = "Subnetwork of combined relationship-strength proxy ties"
+    )
+    dev.off()
+  }
+}
+
 run_snap_analysis <- function(repo_root = ".", fit_models = TRUE) {
   repo_root <- normalizePath(repo_root, winslash = "/", mustWork = TRUE)
   out_dir <- file.path(repo_root, "outputs", "analysis")
@@ -250,6 +387,11 @@ run_snap_analysis <- function(repo_root = ".", fit_models = TRUE) {
   )
   g_undir <- igraph::as_undirected(g_dir, mode = "collapse")
   weak_components <- components(g_undir)
+  community_fit <- igraph::cluster_louvain(g_undir)
+  community_membership <- igraph::membership(community_fit)
+  community_sizes <- as.integer(table(community_membership))
+  local_clustering <- igraph::transitivity(g_undir, type = "local", isolates = "zero")
+  local_clustering[is.na(local_clustering)] <- 0
   giant_size <- max(weak_components$csize)
   density_directed <- if (is_directed) n_edges / (n_nodes * (n_nodes - 1)) else
     (2 * n_edges) / (n_nodes * (n_nodes - 1))
@@ -273,6 +415,9 @@ run_snap_analysis <- function(repo_root = ".", fit_models = TRUE) {
       "max_out_degree",
       "degree_skew_total",
       "global_transitivity_undirected",
+      "average_local_clustering_undirected",
+      "detected_louvain_communities",
+      "largest_louvain_community_nodes",
       "frequency_cutoff_high_tie",
       "embedded_cutoff_common_neighbors"
     ),
@@ -292,6 +437,9 @@ run_snap_analysis <- function(repo_root = ".", fit_models = TRUE) {
       max(out_degree),
       skewness_simple(total_degree),
       transitivity(g_undir, type = "global", isolates = "zero"),
+      mean(local_clustering),
+      length(community_sizes),
+      max(community_sizes),
       frequency_cutoff,
       embedded_cutoff
     )
@@ -309,13 +457,43 @@ run_snap_analysis <- function(repo_root = ".", fit_models = TRUE) {
     out_degree = as.numeric(out_degree),
     total_weak_degree = as.numeric(total_degree),
     date_joined_present = !is.na(network::get.vertex.attribute(net, "date_joined")),
+    local_clustering = as.numeric(local_clustering),
+    community = as.integer(community_membership),
+    incident_to_relationship_proxy = seq_len(n_nodes) %in% unique(c(
+      edge_df$tail[edge_df$relationship_strength_proxy],
+      edge_df$head[edge_df$relationship_strength_proxy]
+    )),
     stringsAsFactors = FALSE
   )
+
+  community_summary <- do.call(rbind, lapply(sort(unique(community_membership)), function(comm_id) {
+    members <- which(community_membership == comm_id)
+    internal_edges <- sum(edge_df$tail %in% members & edge_df$head %in% members)
+    proxy_internal_edges <- sum(
+      edge_df$tail %in% members &
+        edge_df$head %in% members &
+        edge_df$relationship_strength_proxy
+    )
+    data.frame(
+      community = as.integer(comm_id),
+      nodes = length(members),
+      directed_edges_internal = internal_edges,
+      relationship_proxy_edges_internal = proxy_internal_edges,
+      mean_weak_degree = mean(total_degree[members]),
+      mean_local_clustering = mean(local_clustering[members]),
+      stringsAsFactors = FALSE
+    )
+  }))
+  community_summary <- community_summary[order(-community_summary$nodes), ]
 
   degree_values <- function(x) {
     qs <- stats::quantile(x, probs = c(0, .25, .5, .75, 1), names = FALSE)
     as.numeric(c(qs[1], qs[2], qs[3], mean(x), qs[4], qs[5]))
   }
+  local_clustering_summary <- data.frame(
+    statistic = c("min", "p25", "median", "mean", "p75", "max"),
+    local_clustering = degree_values(local_clustering)
+  )
   degree_summary <- data.frame(
     statistic = c("min", "p25", "median", "mean", "p75", "max"),
     in_degree = degree_values(in_degree),
@@ -357,8 +535,12 @@ run_snap_analysis <- function(repo_root = ".", fit_models = TRUE) {
   write.csv(attribute_summary, file.path(out_dir, "attribute_summary.csv"), row.names = FALSE)
   write.csv(node_summary, file.path(out_dir, "node_summary_anonymized.csv"), row.names = FALSE)
   write.csv(degree_summary, file.path(out_dir, "degree_summary.csv"), row.names = FALSE)
+  write.csv(community_summary, file.path(out_dir, "community_summary.csv"), row.names = FALSE)
+  write.csv(local_clustering_summary, file.path(out_dir, "local_clustering_summary.csv"), row.names = FALSE)
   write.csv(relationship_summary, file.path(out_dir, "relationship_proxy_summary.csv"), row.names = FALSE)
   write.csv(edge_export, file.path(out_dir, "edge_relationship_measures_anonymized.csv"), row.names = FALSE)
+
+  plot_network_outputs(g_dir, edge_df, node_summary, community_membership, fig_dir)
 
   p_degree <- ggplot(node_summary, aes(x = total_weak_degree)) +
     geom_histogram(binwidth = 1, fill = "#356859", color = "white", boundary = -0.5) +
@@ -452,6 +634,67 @@ run_snap_analysis <- function(repo_root = ".", fit_models = TRUE) {
         write.csv(gof_summary_table, file.path(out_dir, paste0(best_name, "_gof_check_summary.csv")), row.names = FALSE)
         png(file.path(fig_dir, paste0(best_name, "_gof.png")), width = 1200, height = 900, res = 160)
         plot(gof_result)
+        dev.off()
+      }
+    }
+
+    final_specs <- list(
+      m2_edges_mutual_mcmle = analysis_net ~ edges + mutual,
+      m3_degree_mcmle = analysis_net ~ edges + mutual + gwidegree(0.5, fixed = TRUE) + gwodegree(0.5, fixed = TRUE),
+      m4_closure_mcmle = analysis_net ~ edges + mutual + gwidegree(0.5, fixed = TRUE) + gwodegree(0.5, fixed = TRUE) + gwesp(0.5, fixed = TRUE)
+    )
+    final_status <- data.frame()
+    final_coefficients <- data.frame()
+    final_results <- list()
+    for (model_name in names(final_specs)) {
+      final_result <- fit_mcmle_safe(model_name, final_specs[[model_name]], out_dir, fig_dir)
+      final_results[[model_name]] <- final_result
+      final_status <- rbind(final_status, final_result$status)
+      if (nrow(final_result$coefficients) > 0) {
+        final_coefficients <- rbind(final_coefficients, final_result$coefficients)
+      }
+    }
+    write.csv(final_status, file.path(out_dir, "final_ergm_model_status.csv"), row.names = FALSE)
+    write.csv(final_coefficients, file.path(out_dir, "final_ergm_coefficients.csv"), row.names = FALSE)
+
+    successful_final_names <- names(final_results)[vapply(final_results, function(x) !is.null(x$fit), logical(1))]
+    if (length(successful_final_names) > 0) {
+      preferred_final_name <- tail(successful_final_names, 1)
+      write_text(
+        file.path(out_dir, "preferred_final_model.txt"),
+        c(
+          paste0("Preferred final MCMLE model: ", preferred_final_name),
+          "Selection rule: most complex MCMLE model that fit without density-guard or degeneracy failure."
+        )
+      )
+
+      preferred_fit <- final_results[[preferred_final_name]]$fit
+      final_gof_result <- tryCatch(
+        gof(
+          preferred_fit,
+          GOF = ~ idegree + odegree + distance + espartners + dspartners,
+          control = control.gof.ergm(nsim = 30)
+        ),
+        error = function(e) e
+      )
+      if (inherits(final_gof_result, "error")) {
+        write_text(
+          file.path(out_dir, paste0(preferred_final_name, "_gof_status.txt")),
+          c("GOF failed for preferred final MCMLE fit:", conditionMessage(final_gof_result))
+        )
+      } else {
+        saveRDS(final_gof_result, file.path(out_dir, paste0(preferred_final_name, "_gof.rds")))
+        capture_text(file.path(out_dir, paste0(preferred_final_name, "_gof_summary.txt")), summary(final_gof_result))
+        final_gof_summary_table <- do.call(rbind, list(
+          summarize_gof_distribution(final_gof_result, "ideg", "In-degree distribution"),
+          summarize_gof_distribution(final_gof_result, "odeg", "Out-degree distribution"),
+          summarize_gof_distribution(final_gof_result, "dist", "Minimum geodesic distance"),
+          summarize_gof_distribution(final_gof_result, "espart", "Edgewise shared partners"),
+          summarize_gof_distribution(final_gof_result, "dspart", "Dyadwise shared partners")
+        ))
+        write.csv(final_gof_summary_table, file.path(out_dir, paste0(preferred_final_name, "_gof_check_summary.csv")), row.names = FALSE)
+        png(file.path(fig_dir, paste0(preferred_final_name, "_gof.png")), width = 1200, height = 900, res = 160)
+        plot(final_gof_result)
         dev.off()
       }
     }

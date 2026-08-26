@@ -1,0 +1,2 @@
+"model","status","message"
+"m4_closure_mcmle","failed","Number of edges in a simulated network exceeds that in the observed by a factor of more than 20. This is a strong indicator of model degeneracy or a very poor starting parameter configuration. If you are reasonably certain that neither of these is the case, increase the MCMLE.density.guard control.ergm() parameter."

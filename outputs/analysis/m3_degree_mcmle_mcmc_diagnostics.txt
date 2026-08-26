@@ -1,0 +1,68 @@
+Sample statistics summary:
+
+Iterations = 62750:1251750
+Thinning interval = 500 
+Number of chains = 1 
+Sample size per chain = 2379 
+
+1. Empirical mean and standard deviation for each variable,
+   plus standard error of the mean:
+
+                   Mean     SD Naive SE Time-series SE
+edges            288.12 37.882   0.7767          5.612
+mutual            23.99  6.575   0.1348          1.076
+gwideg.fixed.0.5 144.14 13.991   0.2868          1.928
+gwodeg.fixed.0.5 189.14 16.473   0.3377          2.459
+
+2. Quantiles for each variable:
+
+                  2.5%   25%   50%   75% 97.5%
+edges            214.0 264.0 288.0 313.0 366.0
+mutual            12.0  19.0  24.0  29.0  36.0
+gwideg.fixed.0.5 115.5 134.9 144.1 153.0 172.7
+gwodeg.fixed.0.5 155.3 178.3 189.9 200.4 219.7
+
+
+Sample statistics cross-correlations:
+                     edges    mutual gwideg.fixed.0.5 gwodeg.fixed.0.5
+edges            1.0000000 0.7872342        0.9319425        0.9663075
+mutual           0.7872342 1.0000000        0.7468382        0.7414194
+gwideg.fixed.0.5 0.9319425 0.7468382        1.0000000        0.9027089
+gwodeg.fixed.0.5 0.9663075 0.7414194        0.9027089        1.0000000
+
+Sample statistics auto-correlation:
+Chain 1 
+             edges    mutual gwideg.fixed.0.5 gwodeg.fixed.0.5
+Lag 0    1.0000000 1.0000000        1.0000000        1.0000000
+Lag 500  0.9348173 0.9691653        0.8998291        0.9023267
+Lag 1000 0.8815078 0.9370469        0.8267784        0.8409148
+Lag 1500 0.8381584 0.9080118        0.7766351        0.7945202
+Lag 2000 0.8011906 0.8799202        0.7339768        0.7607997
+Lag 2500 0.7693348 0.8519744        0.6995962        0.7272572
+
+Sample statistics burn-in diagnostic (Geweke):
+Chain 1 
+
+Fraction in 1st window = 0.1
+Fraction in 2nd window = 0.5 
+
+           edges           mutual gwideg.fixed.0.5 gwodeg.fixed.0.5 
+      -1.1362301       -0.9579935       -1.1098185       -0.9659061 
+
+Individual P-values (lower = worse):
+           edges           mutual gwideg.fixed.0.5 gwodeg.fixed.0.5 
+       0.2558603        0.3380660        0.2670772        0.3340912 
+Joint P-value (lower = worse):  0.4351004 
+
+Note: To save space, only one in every 2 iterations of the MCMC sample
+  used for estimation was stored for diagnostics. Sample size per chain
+  was originally around 4758 with thinning interval 250.
+
+Note: MCMC diagnostics shown here are from the last round of
+  simulation, prior to computation of final parameter estimates.
+  Because the final estimates are refinements of those used for this
+  simulation run, these diagnostics may understate model performance.
+  To directly assess the performance of the final model on in-model
+  statistics, please use the GOF command: gof(ergmFitObject,
+  GOF=~model).
+

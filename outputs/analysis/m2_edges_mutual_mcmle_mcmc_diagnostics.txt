@@ -1,0 +1,58 @@
+Sample statistics summary:
+
+Iterations = 100500:2e+06
+Thinning interval = 500 
+Number of chains = 1 
+Sample size per chain = 3800 
+
+1. Empirical mean and standard deviation for each variable,
+   plus standard error of the mean:
+
+         Mean     SD Naive SE Time-series SE
+edges  288.54 18.396  0.29841         0.9737
+mutual  23.49  4.935  0.08005         0.5228
+
+2. Quantiles for each variable:
+
+       2.5% 25% 50% 75% 97.5%
+edges   254 276 289 301   324
+mutual   14  20  24  27    33
+
+
+Sample statistics cross-correlations:
+           edges    mutual
+edges  1.0000000 0.5604402
+mutual 0.5604402 1.0000000
+
+Sample statistics auto-correlation:
+Chain 1 
+             edges    mutual
+Lag 0    1.0000000 1.0000000
+Lag 500  0.6572174 0.9541672
+Lag 1000 0.4799244 0.9097886
+Lag 1500 0.4022097 0.8659020
+Lag 2000 0.3508414 0.8242207
+Lag 2500 0.3064675 0.7837393
+
+Sample statistics burn-in diagnostic (Geweke):
+Chain 1 
+
+Fraction in 1st window = 0.1
+Fraction in 2nd window = 0.5 
+
+    edges    mutual 
+0.4104673 1.3446208 
+
+Individual P-values (lower = worse):
+    edges    mutual 
+0.6814632 0.1787477 
+Joint P-value (lower = worse):  0.1598976 
+
+Note: MCMC diagnostics shown here are from the last round of
+  simulation, prior to computation of final parameter estimates.
+  Because the final estimates are refinements of those used for this
+  simulation run, these diagnostics may understate model performance.
+  To directly assess the performance of the final model on in-model
+  statistics, please use the GOF command: gof(ergmFitObject,
+  GOF=~model).
+
