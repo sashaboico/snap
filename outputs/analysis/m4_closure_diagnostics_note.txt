@@ -1,0 +1,4 @@
+Diagnostics note
+Models are fit with MPLE for preparation/screening in this assignment pass.
+For final inferential claims, refit preferred specifications with MCMLE,
+then run mcmc.diagnostics() and gof() with adequate simulation size.

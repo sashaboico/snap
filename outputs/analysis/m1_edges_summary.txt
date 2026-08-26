@@ -1,0 +1,16 @@
+Call:
+ergm(formula = formula, estimate = "MPLE", control = control.ergm(MPLE.samplesize = 50000))
+
+Maximum Likelihood Results:
+
+      Estimate Std. Error MCMC % z value Pr(>|z|)    
+edges -4.97759    0.05902      0  -84.33   <1e-04 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+For this model, the pseudolikelihood is the same as the likelihood.
+
+     Null Deviance: 58543  on 42230  degrees of freedom
+ Residual Deviance:  3457  on 42229  degrees of freedom
+ 
+AIC: 3459  BIC: 3468  (Smaller is better. MC Std. Err. = 0)

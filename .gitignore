@@ -16,3 +16,12 @@ Thumbs.db
 # Large processed files (adjust as needed — keep small samples, ignore big ones)
 data/processed/*.csv
 !data/processed/.gitkeep
+
+# Local analysis environment
+.conda-r-ergm/
+
+# Generated model objects and report render artifacts
+outputs/analysis/*.rds
+*.html
+*.pdf
+*_files/

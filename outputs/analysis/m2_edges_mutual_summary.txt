@@ -1,0 +1,17 @@
+Call:
+ergm(formula = formula, estimate = "MPLE", control = control.ergm(MPLE.samplesize = 50000))
+
+Maximum Pseudolikelihood Results:
+
+       Estimate Std. Error MCMC % z value Pr(>|z|)    
+edges  -5.15346    0.06459      0  -79.78   <1e-04 ***
+mutual  3.53986    0.17075      0   20.73   <1e-04 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Warning:  The standard errors are based on naive pseudolikelihood and are suspect. Set control.ergm$MPLE.covariance.method='Godambe' for a simulation-based approximation of the standard errors.
+
+     Null Pseudo-deviance: 58543  on 42230  degrees of freedom
+ Residual Pseudo-deviance:  3227  on 42228  degrees of freedom
+ 
+AIC: 3231  BIC: 3249  (Smaller is better. MC Std. Err. = 0)

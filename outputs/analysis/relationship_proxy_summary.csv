@@ -1,0 +1,5 @@
+"measure","rule","tie_count","edge_share"
+"high_frequency_ties","n_transactions >= 2",50,0.173010380622837
+"reciprocated_ties","edge has a reverse-direction partner",48,0.166089965397924
+"embedded_ties","common_neighbors >= 1",122,0.422145328719723
+"relationship_strength_proxy_ties","at least two of high-frequency, reciprocated, embedded",60,0.207612456747405
