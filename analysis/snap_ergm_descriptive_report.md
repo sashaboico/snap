@@ -10,19 +10,6 @@ The project question is whether public Venmo transaction networks can reveal pri
 
 That framing is important for interpretation. The descriptive measures show which transaction ties look stronger or more socially embedded than ordinary one-off payments. The ERGM then asks whether those same structural patterns are systematically present in the network after accounting for baseline sparsity and degree heterogeneity.
 
-## What Counts as Descriptive Analysis
-
-The descriptive-analysis portion includes four parts:
-
-| Descriptive component | What it contributes |
-|---|---|
-| Existing analysis network | Basic node, edge, density, reciprocity, component, and degree-skew summaries |
-| Relationship-strength measures | Counts and shares of high-frequency, reciprocated, embedded, and combined proxy ties |
-| Community and clustering summaries | Louvain communities, local clustering, and whether proxy ties concentrate in local neighborhoods |
-| Network visualizations | Whole-network community/proxy map and proxy-tie subnetwork |
-
-These pieces describe the observed network before inferential modeling. They are separate from the ERGM coefficients, model diagnostics, and goodness-of-fit checks, which belong to the inferential-analysis portion.
-
 ## Existing Analysis Network
 
 The existing directed network contains 206 nodes and 289 directed edges.
@@ -136,12 +123,6 @@ The GOF check simulates networks from the final M3 model and compares them with 
 | Dyadwise shared partners | 50.0% |
 
 The GOF pattern is mixed. M3 does a reasonable job with out-degree but struggles more with in-degree tails and shared-partner structure. This is exactly why M4 was considered: shared-partner closure is substantively important for relationship inference. But because M4 was unstable under MCMLE, the more honest conclusion is that M3 is the defensible final model, while closure remains a limitation and future-modeling target.
-
-## Interpretation for the Assignment
-
-For the final writeup, this analysis should be read as evidence about **structural relationship signals**, not evidence of verified romantic relationships. The descriptive results show that a nontrivial share of transaction ties are repeated, reciprocal, embedded, or combinations of those signals. The ERGM results show that reciprocity remains a strong network-generating pattern after accounting for sparsity and degree heterogeneity.
-
-The 206-node analysis network also makes ERGM estimation tractable. A network with millions of nodes and millions of transactions would be unrealistic for standard ERGM fitting in a course project. This smaller network allows the analysis to estimate and diagnose ERGM terms directly, but it limits generalizability. The findings should be framed as evidence from the sampled analysis network, not as population-level claims about all Venmo users.
 
 ## References for ERGM Specification
 
